@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using AuthServer.Data;
-using AuthServer.Entities;
+﻿using AuthServer.Data;
 using AuthServer.DTOs;
+using AuthServer.Entities;
 using BCrypt.Net;
+using Microsoft.AspNetCore.Mvc;
 
 namespace AuthServer.Controllers;
 
@@ -32,5 +32,31 @@ public class AuthController : ControllerBase
         _context.SaveChanges();
 
         return Ok(user);
+    }
+
+
+    [HttpPost("login")]
+    public IActionResult Login(LoginRequest request)
+    {
+        var user = _context.Users
+            .FirstOrDefault(u => u.Username == request.Username);
+
+        if (user == null)
+        {
+            return Unauthorized("User not found");
+        }
+
+        bool isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+
+        if (!isPasswordValid)
+        {
+            return Unauthorized("Invalid password");
+        }
+
+        return Ok(new
+        {
+            message = "Login successful",
+            username = user.Username
+        });
     }
 }
