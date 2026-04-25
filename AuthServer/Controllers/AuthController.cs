@@ -26,19 +26,39 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
+        // Check username tồn tại
         if (await _context.Users.AnyAsync(u => u.Username == request.Username))
-            return Conflict("Username already exists");
+            return BadRequest(new
+            {
+                error = "Username đã tồn tại",
+                field = "Username"
+            });
 
+        // Check email tồn tại
+        if (await _context.Users.AnyAsync(u => u.Email == request.Email))
+            return BadRequest(new
+            {
+                error = "Email đã được đăng ký",
+                field = "Email"
+            });
         var user = new User
         {
             Username = request.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+              CreatedAt = DateTime.UtcNow
         };
 
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        return Ok(new { user.Id, user.Username });
+        return Created($"/api/auth/{user.Id}", new
+        {
+            id = user.Id,
+            username = user.Username,
+            email = user.Email,                    
+            createdAt = user.CreatedAt             
+        });
     }
 
     [HttpPost("login")]
