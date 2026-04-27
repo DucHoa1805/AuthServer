@@ -3,12 +3,13 @@ using AuthServer.DTOs;
 using AuthServer.Entities;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; 
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.EntityFrameworkCore; 
 namespace AuthServer.Controllers;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -77,6 +78,39 @@ public class AuthController : ControllerBase
         return Ok(new { token, username = user.Username });
     }
 
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        // 1. Lấy userId từ JWT token
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized("Token không hợp lệ");
+
+        // 2. Tìm user trong database
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound("User không tìm thấy");
+
+        // 3. Verify mật khẩu cũ
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+            return BadRequest(new { error = "Mật khẩu cũ không chính xác" });
+
+        // 4. Check mật khẩu mới khác mật khẩu cũ
+        if (request.NewPassword == request.CurrentPassword)
+            return BadRequest(new { error = "Mật khẩu mới phải khác mật khẩu cũ" });
+
+        // 5. Hash mật khẩu mới
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+
+        // 6. Lưu vào database
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Đổi mật khẩu thành công" });
+    }
+
     private string GenerateJwtToken(User user)
     {
         var claims = new[]
@@ -99,4 +133,5 @@ public class AuthController : ControllerBase
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+
 }
