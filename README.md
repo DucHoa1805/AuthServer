@@ -1,81 +1,123 @@
-# AuthServer (.NET 10 Web API)
+# AuthServer
 
-AuthServer là API xác thực cơ bản xây bằng ASP.NET Core, Entity Framework Core và SQL Server.
+AuthServer là Web API xác thực người dùng viết bằng **ASP.NET Core (.NET 10)**, dùng **EF Core + SQL Server**, hỗ trợ:
+- Đăng ký tài khoản
+- Đăng nhập và trả về JWT token
+- Swagger để test API
 
-## Tính năng hiện có
-- Đăng ký tài khoản qua API `POST /api/auth/register`
-- Hash mật khẩu bằng `BCrypt`
-- Tích hợp Swagger để test API
+## 1) Yêu cầu môi trường
 
-## Công nghệ sử dụng
-- .NET 10 (ASP.NET Core Web API)
-- Entity Framework Core + SQL Server
-- BCrypt.Net-Next
-- Swashbuckle (Swagger/OpenAPI)
+- .NET SDK 10
+- SQL Server (local hoặc remote)
+- (Khuyến nghị) EF Core CLI:
 
-## Cấu trúc thư mục chính
-```text
-AuthServer/
-├── Controllers/      # API endpoints
-├── DTOs/             # Request/response models
-├── Entities/         # Entity classes
-├── Data/             # DbContext
-├── Migrations/       # EF Core migrations
-├── Properties/       # launchSettings
-└── appsettings.json  # cấu hình ứng dụng + connection string
-```
-
-## Hướng dẫn chạy project (từng bước)
-
-### 1) Yêu cầu môi trường
-- Cài .NET SDK 10
-- Cài SQL Server (local hoặc remote)
-- (Khuyên dùng) Cài EF CLI:
 ```bash
 dotnet tool install --global dotnet-ef
 ```
 
-### 2) Clone repository
+## 2) Clone và vào thư mục dự án
+
 ```bash
 git clone https://github.com/DucHoa1805/AuthServer.git
 cd AuthServer
 ```
 
-### 3) Cấu hình database
-Mở file:
-- `AuthServer/appsettings.json`
+## 3) Cấu hình ứng dụng
 
-Sửa `ConnectionStrings:DefaultConnection` cho phù hợp máy của bạn, ví dụ:
+File chính: `/home/runner/work/AuthServer/AuthServer/AuthServer/appsettings.json`
+
+### Connection String
+Sửa `ConnectionStrings:DefaultConnection` theo máy của bạn:
+
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Server=.;Database=AuthServerDb;Trusted_Connection=True;TrustServerCertificate=True"
 }
 ```
 
-### 4) Tạo/cập nhật database từ migration
-Chạy tại thư mục gốc repository:
+### JWT
+Điền `Jwt:Key` (không để rỗng). Ví dụ key đủ dài:
+
+```json
+"Jwt": {
+  "Key": "your-very-strong-secret-key-at-least-32-characters",
+  "Issuer": "AuthServer",
+  "Audience": "AuthClient"
+}
+```
+
+## 4) Khởi tạo/cập nhật database
+
 ```bash
 dotnet ef database update --project AuthServer/AuthServer.csproj
 ```
 
-### 5) Chạy ứng dụng
+## 5) Chạy ứng dụng
+
 ```bash
 dotnet run --project AuthServer/AuthServer.csproj
 ```
 
-### 6) Test API bằng Swagger
-Mở trình duyệt:
-- https://localhost:7166/swagger
-hoặc
-- http://localhost:5266/swagger
+Mặc định chạy ở:
+- `http://localhost:5266`
+- `https://localhost:7166`
 
-## API hiện có
-- `POST /api/auth/register`
+Swagger:
+- `http://localhost:5266/swagger`
+- `https://localhost:7166/swagger`
 
-Ví dụ body:
+## 6) API hiện có
+
+Base route: `/api/auth`
+
+### POST `/api/auth/register`
+Đăng ký tài khoản mới.
+
+Body mẫu:
+
 ```json
 {
   "username": "testuser",
-  "password": "123456"
+  "email": "test@example.com",
+  "password": "Abcdef@123"
 }
+```
+
+Ràng buộc:
+- `username`: 3-20 ký tự
+- `email`: đúng định dạng email
+- `password`: tối thiểu 8 ký tự, có chữ hoa, chữ thường, số, ký tự đặc biệt (`@$!%*?&`)
+
+### POST `/api/auth/login`
+Đăng nhập và nhận JWT token.
+
+Body mẫu:
+
+```json
+{
+  "username": "testuser",
+  "password": "Abcdef@123"
+}
+```
+
+Response mẫu:
+
+```json
+{
+  "token": "<jwt-token>",
+  "username": "testuser"
+}
+```
+
+## 7) Cấu trúc thư mục chính
+
+```text
+AuthServer/
+├── Controllers/      # API endpoints
+├── DTOs/             # Request models
+├── Entities/         # Entity classes
+├── Data/             # DbContext
+├── Migrations/       # EF Core migrations
+├── Properties/       # launchSettings
+└── appsettings.json  # cấu hình ứng dụng
 ```
