@@ -2,13 +2,14 @@
 using AuthServer.DTOs;
 using AuthServer.Entities;
 using BCrypt.Net;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore; 
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Authorization;
 namespace AuthServer.Controllers;
 
 [ApiController]
@@ -76,6 +77,15 @@ public class AuthController : ControllerBase
 
         var token = GenerateJwtToken(user);
         return Ok(new { token, username = user.Username });
+    }
+
+    [HttpGet("me")]
+    [Authorize]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userId = /* extract from token */;
+        var user = await _context.Users.FindAsync(userId);
+        return Ok(new { id, username, email, createdAt });
     }
 
     [Authorize]
