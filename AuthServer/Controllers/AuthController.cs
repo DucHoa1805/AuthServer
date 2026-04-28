@@ -111,6 +111,30 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Đổi mật khẩu thành công" });
     }
 
+    [HttpDelete("me")]
+    [Authorize]
+    public async Task<IActionResult> DeleteAccount(DeleteAccountRequest request)
+    {
+        // 1. Lấy userId từ JWT token
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized("Token không hợp lệ");
+
+        // 2. Tìm user trong database
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null)
+            return NotFound("User không tìm thấy");
+
+        // 3. Verify mật khẩu
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+            return BadRequest(new { error = "Mật khẩu không chính xác" });
+
+        // 4. Xoá user
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Tài khoản đã được xoá thành công" });
+    }
     private string GenerateJwtToken(User user)
     {
         var claims = new[]
