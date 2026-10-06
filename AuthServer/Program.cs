@@ -7,6 +7,19 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Fail-fast: chặn startup nếu cấu hình JWT thiếu thay vì crash lệch lúc runtime
+var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+if (string.IsNullOrWhiteSpace(jwtKey))
+    throw new InvalidOperationException(
+        "Jwt:Key chưa được cấu hình. Dùng user secrets: " +
+        "'dotnet user-secrets set \"Jwt:Key\" \"<key-ít-nhất-32-ký-tự>\"'");
+if (jwtKey.Length < 32)
+    throw new InvalidOperationException("Jwt:Key phải ít nhất 32 ký tự để an toàn với HMAC-SHA256.");
+if (string.IsNullOrWhiteSpace(jwtIssuer) || string.IsNullOrWhiteSpace(jwtAudience))
+    throw new InvalidOperationException("Jwt:Issuer và Jwt:Audience là bắt buộc.");
+
 builder.Services.AddControllers();
 
 // 1. Thêm cái này để hỗ trợ Swagger UI
@@ -55,6 +68,34 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+
+        // Token cấp trước lần đổi mật khẩu/xoá tài khoản gần nhất bị từ chối (401)
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var db = context.HttpContext.RequestServices
+                    .GetRequiredService<AppDbContext>();
+
+                var userIdClaim = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (userIdClaim == null || !Guid.TryParse(userIdClaim.Value, out var userId))
+                {
+                    context.Fail("Token không hợp lệ");
+                    return;
+                }
+
+                var user = await db.Users.FindAsync(userId);
+                var versionClaim = context.Principal?.FindFirst("token_version");
+
+                if (user == null || !user.IsActive ||
+                    versionClaim == null ||
+                    !int.TryParse(versionClaim.Value, out var tokenVersion) ||
+                    tokenVersion != user.TokenVersion)
+                {
+                    context.Fail("Token đã hết hiệu lực");
+                }
+            }
         };
     });
 builder.Services.AddDbContext<AppDbContext>(options =>

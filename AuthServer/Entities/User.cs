@@ -7,7 +7,10 @@ public class User
     public required string Email { get; set; }
     public required string PasswordHash { get; set; }
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;   
-    public DateTime? UpdatedAt { get; set; }                      
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
     public bool IsActive { get; set; } = true;
+
+    // Tăng mỗi khi đổi mật khẩu để vô hiệu hóa mọi JWT cũ
+    public int TokenVersion { get; set; }
 }
