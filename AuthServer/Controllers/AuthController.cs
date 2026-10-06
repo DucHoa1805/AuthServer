@@ -2,6 +2,8 @@ using AuthServer.Data;
 using AuthServer.DTOs;
 using AuthServer.Entities;
 using BCrypt.Net;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Data.SqlClient;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -51,7 +53,21 @@ public class AuthController : ControllerBase
         };
 
         _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 } sqlEx)
+        {
+            // Request khác đăng ký cùng username/email chen vào giữa lúc check và lúc insert,
+            // unique index chặn lại → trả 400 thay vì để lọt ra lỗi 500
+            var isEmail = sqlEx.Message.Contains("IX_Users_Email");
+            return BadRequest(new
+            {
+                error = isEmail ? "Email đã được đăng ký" : "Username đã tồn tại",
+                field = isEmail ? "Email" : "Username"
+            });
+        }
 
         return Created($"/api/auth/{user.Id}", new
         {
@@ -63,6 +79,7 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var user = await _context.Users
