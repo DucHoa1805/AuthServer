@@ -1,0 +1,48 @@
+meta {
+  name: 01 - Register Success
+  type: http
+  sequence: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+script:pre-request {
+  const runId = Date.now();
+  bru.setEnvVar("testUsername", "bruno_" + runId);
+  bru.setEnvVar("testEmail", "bruno_" + runId + "@test.com");
+}
+
+body:json {
+  {
+    "username": "{{testUsername}}",
+    "email": "{{testEmail}}",
+    "password": "Abcdef@123"
+  }
+}
+
+script:post-response {
+  // Lưu để các request sau dùng
+  bru.setEnvVar("username", bru.getEnvVar("testUsername"));
+  bru.setEnvVar("email", bru.getEnvVar("testEmail"));
+
+  test("Status 201 Created", () => {
+    expect(res.getStatus()).to.equal(201);
+  });
+
+  test("Trả về id hợp lệ (Guid 36 ký tự)", () => {
+    expect(res.body.id).to.be.a("string").and.have.lengthOf(36);
+  });
+
+  test("Trả về đúng username/email đã đăng ký", () => {
+    expect(res.body.username).to.equal(bru.getEnvVar("testUsername"));
+    expect(res.body.email).to.equal(bru.getEnvVar("testEmail"));
+  });
+
+  test("Có createdAt", () => {
+    expect(res.body.createdAt).to.exist;
+  });
+}

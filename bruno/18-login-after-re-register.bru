@@ -1,0 +1,28 @@
+meta {
+  name: 18 - Login After Re-register
+  type: http
+  sequence: 18
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "{{username}}",
+    "password": "Abcdef@123"
+  }
+}
+
+script:post-response {
+  test("Status 200 - đăng nhập được bằng tài khoản mới sau khi đăng ký lại", () => {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Trả về token", () => {
+    expect(res.body.token).to.exist;
+  });
+}

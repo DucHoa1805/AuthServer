@@ -1,0 +1,24 @@
+meta {
+  name: 16 - Login After Delete
+  type: http
+  sequence: 16
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "{{username}}",
+    "password": "Xyzuvw@456"
+  }
+}
+
+script:post-response {
+  test("Status 401 - user đã bị vô hiệu hoá", () => {
+    expect(res.getStatus()).to.equal(401);
+  });
+}

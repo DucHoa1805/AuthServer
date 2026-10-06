@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Bruno CLI runtime output
+bruno/results.json
+# Bruno env runtime vars (token, username... do Bruno ghi sau khi run)
+bruno/environments/Local.bru
+

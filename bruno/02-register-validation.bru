@@ -1,0 +1,29 @@
+meta {
+  name: 02 - Register Validation Errors
+  type: http
+  sequence: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "ab",
+    "email": "not-an-email",
+    "password": "weak"
+  }
+}
+
+script:post-response {
+  test("Status 400 BadRequest do validation fail", () => {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("Có nội dung lỗi validation trả về", () => {
+    expect(JSON.stringify(res.body).length).to.be.greaterThan(0);
+  });
+}

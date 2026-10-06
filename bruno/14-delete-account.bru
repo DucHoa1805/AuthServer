@@ -1,0 +1,31 @@
+meta {
+  name: 14 - Delete Account Success (Soft delete)
+  type: http
+  sequence: 14
+}
+
+delete {
+  url: {{baseUrl}}/api/auth/me
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{newToken}}
+}
+
+body:json {
+  {
+    "password": "Xyzuvw@456"
+  }
+}
+
+script:post-response {
+  test("Status 200 OK", () => {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Thông báo xoá thành công", () => {
+    expect(res.body.message).to.equal("Tài khoản đã được xoá thành công");
+  });
+}

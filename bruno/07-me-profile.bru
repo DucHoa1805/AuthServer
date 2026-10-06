@@ -1,0 +1,33 @@
+meta {
+  name: 07 - Me With Token (GetProfile)
+  type: http
+  sequence: 7
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+script:post-response {
+  bru.setEnvVar("userId", res.body.id);
+
+  test("Status 200 OK", () => {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Trả về đúng profile user", () => {
+    expect(res.body.id).to.be.a("string").and.have.lengthOf(36);
+    expect(res.body.username).to.equal(bru.getEnvVar("username"));
+    expect(res.body.email).to.equal(bru.getEnvVar("email"));
+  });
+
+  test("Có createdAt", () => {
+    expect(res.body.createdAt).to.exist;
+  });
+}

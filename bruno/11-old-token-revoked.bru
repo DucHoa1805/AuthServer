@@ -1,0 +1,21 @@
+meta {
+  name: 11 - Old Token Revoked After Change Password
+  type: http
+  sequence: 11
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+script:post-response {
+  test("Status 401 - token cũ bị thu hồi", () => {
+    expect(res.getStatus()).to.equal(401);
+  });
+}

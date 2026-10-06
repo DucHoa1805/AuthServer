@@ -1,0 +1,35 @@
+meta {
+  name: 05 - Login Success
+  type: http
+  sequence: 5
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "{{username}}",
+    "password": "Abcdef@123"
+  }
+}
+
+script:post-response {
+  bru.setEnvVar("token", res.body.token);
+
+  test("Status 200 OK", () => {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("Có JWT token (3 phần tử)", () => {
+    expect(res.body.token).to.exist;
+    expect(res.body.token.split(".")).to.have.lengthOf(3);
+  });
+
+  test("Trả về đúng username", () => {
+    expect(res.body.username).to.equal(bru.getEnvVar("username"));
+  });
+}

@@ -1,0 +1,17 @@
+meta {
+  name: 06 - Me Without Token
+  type: http
+  sequence: 6
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me
+  body: none
+  auth: none
+}
+
+script:post-response {
+  test("Status 401 khi không có token", () => {
+    expect(res.getStatus()).to.equal(401);
+  });
+}

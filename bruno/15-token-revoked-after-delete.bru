@@ -1,0 +1,21 @@
+meta {
+  name: 15 - Token Revoked After Delete
+  type: http
+  sequence: 15
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{newToken}}
+}
+
+script:post-response {
+  test("Status 401 - token sau khi xoá tài khoản bị thu hồi", () => {
+    expect(res.getStatus()).to.equal(401);
+  });
+}

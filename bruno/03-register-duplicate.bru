@@ -1,0 +1,34 @@
+meta {
+  name: 03 - Register Duplicate Username
+  type: http
+  sequence: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/register
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "{{username}}",
+    "email": "different_{{runIdSuffix}}@test.com",
+    "password": "Abcdef@123"
+  }
+}
+
+script:pre-request {
+  bru.setEnvVar("runIdSuffix", String(Date.now()));
+}
+
+script:post-response {
+  test("Status 400 BadRequest", () => {
+    expect(res.getStatus()).to.equal(400);
+  });
+
+  test("Báo Username đã tồn tại với field=Username", () => {
+    expect(res.body.error).to.equal("Username đã tồn tại");
+    expect(res.body.field).to.equal("Username");
+  });
+}

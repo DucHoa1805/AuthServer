@@ -24,7 +24,7 @@ cd AuthServer
 
 ## 3) Cấu hình ứng dụng
 
-File chính: `/home/runner/work/AuthServer/AuthServer/AuthServer/appsettings.json`
+File chính: `AuthServer/appsettings.json`
 
 ### Connection String
 Sửa `ConnectionStrings:DefaultConnection` theo máy của bạn:
@@ -36,11 +36,17 @@ Sửa `ConnectionStrings:DefaultConnection` theo máy của bạn:
 ```
 
 ### JWT
-Điền `Jwt:Key` (không để rỗng). Ví dụ key đủ dài:
+`Jwt:Key` **không được commit lên git**. Dùng user secrets (chạy trong thư mục `AuthServer/` chứa file `.csproj`):
+
+```bash
+cd AuthServer
+dotnet user-secrets set "Jwt:Key" "your-very-strong-secret-key-at-least-32-characters"
+```
+
+Ứng dụng sẽ **từ chối khởi động** nếu `Jwt:Key` thiếu hoặc ngắn hơn 32 ký tự. `Issuer`/`Audience` đã có sẵn trong `appsettings.json`:
 
 ```json
 "Jwt": {
-  "Key": "your-very-strong-secret-key-at-least-32-characters",
   "Issuer": "AuthServer",
   "Audience": "AuthClient"
 }
@@ -109,6 +115,46 @@ Response mẫu:
 }
 ```
 
+Lưu ý: thông báo lỗi đăng nhập là chung ("Username hoặc mật khẩu không chính xác") cho cả trường hợp user không tồn tại, sai mật khẩu hay tài khoản bị vô hiệu hoá.
+
+### GET `/api/auth/me` 🔒
+Xem thông tin tài khoản hiện tại. Cần header `Authorization: Bearer <token>`.
+
+Response mẫu:
+
+```json
+{
+  "id": "3f2b8c64-1a2e-4c5d-9e8f-0a1b2c3d4e5f",
+  "username": "testuser",
+  "email": "test@example.com",
+  "createdAt": "2026-04-20T12:00:00Z"
+}
+```
+
+### POST `/api/auth/change-password` 🔒
+Đổi mật khẩu. **Mọi token cũ sẽ hết hiệu lực ngay sau khi đổi** — phải đăng nhập lại.
+
+Body mẫu:
+
+```json
+{
+  "currentPassword": "Abcdef@123",
+  "newPassword": "Xyzuvw@456",
+  "confirmPassword": "Xyzuvw@456"
+}
+```
+
+### DELETE `/api/auth/me` 🔒
+Xoá tài khoản (soft delete — vô hiệu hoá, có thể khôi phục ở tầng database). Cần mật khẩu xác nhận trong body. Sau khi xoá, mọi token hết hiệu lực và username/email có thể được đăng ký lại.
+
+Body mẫu:
+
+```json
+{
+  "password": "Abcdef@123"
+}
+```
+
 ## 7) Cấu trúc thư mục chính
 
 ```text
@@ -121,3 +167,5 @@ AuthServer/
 ├── Properties/       # launchSettings
 └── appsettings.json  # cấu hình ứng dụng
 ```
+
+🔒 = cần JWT token (đăng nhập rồi lấy token từ `/api/auth/login`)
